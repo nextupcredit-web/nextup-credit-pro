@@ -209,3 +209,6 @@ textarea.f{min-height:110px;resize:vertical;line-height:1.55}
 .sub .bb+.bb{margin-left:-2px}
 .sgraph{margin-top:4px}
 @media(min-width:900px){.sgraph{max-width:300px}.sgraph .legend{display:flex;gap:12px;flex-wrap:wrap}}
+.bbw{display:inline-flex;vertical-align:middle;margin-right:6px}.bbw .bb{margin-right:0}
+.bbi{display:none;height:22px;width:auto;max-width:34px;object-fit:contain;border-radius:5px}
+.legend .bb{margin-right:6px}
