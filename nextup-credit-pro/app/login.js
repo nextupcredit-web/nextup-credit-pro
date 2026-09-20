@@ -243,11 +243,12 @@
       });
 
       var h1 = el('h1', { text: (c.first_name || '') + ' ' + (c.last_name || '') });
-      var repBox = el('div', { id: 'repbox' });
+      var repBox = el('div', { id: 'repbox' }); var letBox = el('div', { id: 'letbox' });
       show([el('div', { class: 'bar' }, [backBtn(), signOutBtn(true)]), h1, f,
         el('h2', { text: 'Private details' }),
-        el('p', { class: 'sub', text: 'Stored encrypted. Only revealed on request, and every reveal is recorded in the activity log.' }), out, rev, sf, repBox]);
+        el('p', { class: 'sub', text: 'Stored encrypted. Only revealed on request, and every reveal is recorded in the activity log.' }), out, rev, sf, repBox, letBox]);
       if (window.NCPReport) window.NCPReport.mount(repBox, { sb: sb, clientId: id, prof: prof, user: user });
+      if (window.NCPLetters) window.NCPLetters.mount(letBox, { sb: sb, clientId: id, prof: prof, user: user });
     }
   }
 
