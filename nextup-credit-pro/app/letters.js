@@ -104,7 +104,7 @@
 
     /* ---------- saved list ---------- */
     function loadSaved() {
-      sb.from('letters').select('id,bureau,round,body,created_at').eq('client_id', clientId).order('created_at', { ascending: false }).limit(100).then(function (r) {
+            sb.from('letters').select('id,bureau,round,body,created_at').eq('client_id', clientId).in('bureau', ['EQ', 'EX', 'TU']).order('created_at', { ascending: false }).limit(100).then(function (r) {
         savedBox.textContent = '';
         if (r.error) { savedBox.appendChild(el('p', { class: 'sub', text: 'Could not load letters.' })); return; }
         if (!r.data.length) { savedBox.appendChild(el('p', { class: 'sub', text: 'No letters saved yet.' })); return; }
