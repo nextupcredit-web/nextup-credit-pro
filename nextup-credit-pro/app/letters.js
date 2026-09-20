@@ -133,7 +133,7 @@
       drafts.textContent = ''; go.disabled = true; status.textContent = 'Writing. This takes a few seconds per account...';
       Promise.all([
         sb.functions.invoke('draft-letters', { body: { client_id: clientId, round: round } }),
-        sb.from('accounts').select('id,creditor,acct_type,acct_last4,bureau').eq('client_id', clientId).eq('decision', 'dispute')
+                sb.from('accounts').select('id,creditor,acct_type,acct_last4,acct_number,bureau').eq('client_id', clientId).eq('decision', 'dispute')
       ]).then(function (rs) {
         go.disabled = false;
         var fr = rs[0], ar = rs[1];
@@ -153,7 +153,7 @@
           var list = by[k], seed = clientId + k, parts = [intro(round, BUREAU[k].name, list.length, seed), ''];
           list.forEach(function (x, n) {
             if (x.review) anyReview = true;
-            parts.push((n + 1) + '. ' + x.a.creditor + ', ' + (x.a.acct_type || 'account') + (x.a.acct_last4 ? ', account ending ' + x.a.acct_last4 : ''));
+                        parts.push((n + 1) + '. ' + x.a.creditor + ', ' + (x.a.acct_type || 'account') + (x.a.acct_number ? ', account number ' + x.a.acct_number : (x.a.acct_last4 ? ', account ending ' + x.a.acct_last4 : '')));
             if (round > 1) parts.push(x.review ? '[The writer could not draft this one. Type the reason here.]' : x.text);
             parts.push('');
           });
