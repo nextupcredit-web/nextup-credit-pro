@@ -112,13 +112,14 @@ A.addclient=function(){
 
 var SC={m:{d:['Jun 12','Jul 17','Aug 21','Sep 18'],EQ:[548,561,573,584],EX:[555,566,579,591],TU:[552,563,575,588]},
  y:{d:['Aug 30','Sep 19'],EQ:[561,563],EX:[570,571],TU:[558,560]}};
-var BC={Equifax:['EQ','#B3261E'],Experian:['EX','#1F4FD8'],TransUnion:['TU','#0E7C66']};
-function bb(n){var c=BC[n]||['?','#5a6678'];return '<i class="bb" style="background:'+c[1]+'" aria-hidden="true">'+c[0]+'</i>'+n;}
+var BC={Equifax:['EQ','#9B1B30'],Experian:['EX','#6B1A72'],TransUnion:['TU','#0090B8']};
+function bimg(k,n){return '<span class="bbw"><img class="bbi" src="../icons/bureaus/'+k.toLowerCase()+'.png" alt="" onload="this.nextSibling.style.display=\'none\';this.style.display=\'inline-block\'" onerror="this.remove()"><i class="bb" style="background:'+BC[n][1]+'" aria-hidden="true">'+k+'</i></span>';}
+function bb(n){return BC[n]?bimg(BC[n][0],n)+n:n;}
 var BI={EQ:'Equifax',EX:'Experian',TU:'TransUnion'};
-function bbs(t){return String(t).split(' · ').map(function(k){var n=BI[k];return n?'<i class="bb" title="'+n+'" style="background:'+BC[n][1]+'">'+k+'</i>':k;}).join('');}
+function bbs(t){return String(t).split(' · ').map(function(k){var n=BI[k];return n?bimg(k,n):k;}).join('');}
 function addScores(c,sv,label){var o=SC[c.id];if(!o){o=SC[c.id]={d:['Start'],EQ:[sv[0]],EX:[sv[1]],TU:[sv[2]]};}else{o.d.push(label);o.EQ.push(sv[0]);o.EX.push(sv[1]);o.TU.push(sv[2]);}c.scores=sv.slice();}
 function scoreProgress(o,who){
- var B=[['EQ','Equifax','var(--accent)'],['EX','Experian','var(--good)'],['TU','TransUnion','var(--warn)']],n=o.d.length,last=n-1;
+ var B=[['EQ','Equifax',BC.Equifax[1]],['EX','Experian',BC.Experian[1]],['TU','TransUnion',BC.TransUnion[1]]],n=o.d.length,last=n-1;
  var all=[].concat(o.EQ,o.EX,o.TU),lo=Math.floor((Math.min.apply(0,all)-10)/10)*10,hi=Math.ceil((Math.max.apply(0,all)+10)/10)*10;
  var W=360,H=230,L=34,R=14,T=14,Bm=30,x=function(i){return L+(n===1?0:i*(W-L-R)/(n-1));},y=function(v){return T+(hi-v)*(H-T-Bm)/(hi-lo);};
  var g='',ticks=4;for(var t=0;t<=ticks;t++){var v=lo+(hi-lo)*t/ticks;g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="var(--line)"/><text x="'+(L-6)+'" y="'+(y(v)+4)+'" text-anchor="end" font-size="11" fill="var(--ink2)">'+Math.round(v)+'</text>';}
@@ -129,7 +130,7 @@ function scoreProgress(o,who){
  return '<div class="card"><h3>Your credit scores</h3><div class="body">'+tiles+
   '<div style="margin:12px 0 4px;font-size:15px"><b>'+(dl>0?'Up '+dl+' points on average':dl<0?'Down '+Math.abs(dl)+' points on average':'No change on average yet')+'</b> <span class="sub">since you started ('+o.d[0]+' → '+o.d[last]+')</span></div>'+
   '<div class="sgraph"><svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block" role="img" aria-label="Credit score history for Equifax, Experian and TransUnion, from '+o.d[0]+' to '+o.d[last]+'">'+g+'</svg>'+
-  '<div class="legend" style="margin-top:6px">'+B.map(function(b){return '<div><i style="background:'+b[2]+'"></i>'+b[1]+'</div>';}).join('')+'</div></div>'+
+  '<div class="legend" style="margin-top:6px">'+B.map(function(b){return '<div>'+bb(b[1])+'</div>';}).join('')+'</div></div>'+
   '<div class="sub" style="margin-top:10px">'+(who==='diy'?'Your scores are read from your report each time you upload a new one. ':'Your agent adds your new scores from each report update. ')+'Scores come from your credit monitoring service. Results vary and are never guaranteed.</div></div></div>';
 }
 function scoreBox(c){return '<div class="scores">'+['Equifax','Experian','TransUnion'].map(function(b,i){return '<div class="score"><div class="b">'+bb(b)+'</div><div class="n mono">'+(c.scores[i]||'–')+'</div>'+(SC[c.id]?'<div class="sub">Started at '+SC[c.id][['EQ','EX','TU'][i]][0]+' · <b style="color:var(--good)">'+((c.scores[i]-SC[c.id][['EQ','EX','TU'][i]][0])>=0?'+':'')+(c.scores[i]-SC[c.id][['EQ','EX','TU'][i]][0])+'</b></div>':'')+'</div>';}).join('')+'</div>';}
