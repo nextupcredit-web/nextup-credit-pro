@@ -30,14 +30,33 @@
   }
 
   /* wording around the AI paragraphs, by round */
-  function intro(round, bureauName, n) {
+  var R1_INTRO = [
+    'I am writing to {B} about the accounts listed below. I need you to confirm that each one belongs to me and is being reported correctly.',
+    'Please check the accounts below on my {B} credit file. I want to know that each account is mine and that everything shown for it is accurate.',
+    'This letter asks {B} to verify the accounts listed below. Please confirm that they are mine and that the information reported for them is correct.',
+    'I have reviewed my {B} credit report and would like the following accounts verified. Please confirm they belong to me and are reporting accurately.',
+    'I am asking {B} to look closely at the accounts below. I need to know that each one is really mine and that it is reported accurately on my file.',
+    'Please verify the accounts listed below that appear on my {B} report. I want confirmation that they are mine and that the details are accurate.'];
+  var R1_CLOSE = [
+    'If any of these accounts cannot be verified as mine and accurate, please delete them from my file and send me the written results along with an updated copy of my report.',
+    'Please remove any account you cannot confirm is mine and correct, and mail me the results of your check and my updated report.',
+    'I expect a written response. Anything you cannot verify as belonging to me and reporting accurately should be deleted, and I would like a copy of my updated credit report.',
+    'Please send me your findings in writing. If an account is not mine or cannot be verified as accurate, delete it and send me a new copy of my report.',
+    'Please let me know the results in writing, delete whatever cannot be verified, and include an updated copy of my report.',
+    'After your check, send me the results in writing. Any account that is not mine or not accurate should be removed, and I would like an updated report.'];
+  function pick(list, seed, salt) {
+    var h = 7; var t = seed + '|' + salt;
+    for (var i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0;
+    return list[h % list.length];
+  }
+  function intro(round, bureauName, n, seed) {
     var many = n > 1;
-    if (round <= 1) return 'I am writing to ' + bureauName + ' about the ' + (many ? 'items' : 'item') + ' below. Please look at ' + (many ? 'each one' : 'it') + ' again against the details on my file.';
+    if (round <= 1) return pick(R1_INTRO, seed, 'i').replace('{B}', bureauName);
     if (round === 2) return 'I asked ' + bureauName + ' to look into the ' + (many ? 'items' : 'item') + ' below and ' + (many ? 'they still appear' : 'it still appears') + ' on my report. Please investigate again and correct or delete anything that is not accurate and complete.';
     return 'This is a further request to ' + bureauName + ' about the ' + (many ? 'items' : 'item') + ' below, which I have raised before.';
   }
-  function closing(round) {
-    if (round <= 1) return 'Please send me the results in writing. If anything cannot be shown to be accurate and complete, please correct or delete it and send me an updated copy of my report.';
+  function closing(round, seed) {
+    if (round <= 1) return pick(R1_CLOSE, seed, 'c');
     if (round === 2) return 'Please send me the written results of your investigation and an updated copy of my report.';
     return 'For each account above, please send me a description of how it was checked, including the name, address and phone number of the furnisher you contacted and the records you relied on. If any entry cannot be shown to be accurate and complete, please delete it or correct it and send me an updated copy of my report.';
   }
@@ -52,7 +71,7 @@
     var go = el('button', { class: 'btn', type: 'button', text: 'Write letters for accounts marked Dispute' });
 
     box.appendChild(el('h2', { text: 'Letters' }));
-    box.appendChild(el('p', { class: 'sub', text: 'One letter per bureau. The AI writes a fresh paragraph for each account marked Dispute (checked against your rules). You can edit before saving or printing.' }));
+    box.appendChild(el('p', { class: 'sub', text: 'One letter per bureau. Round 1 lists the accounts only. From Round 2 the AI writes a fresh paragraph for each account (checked against your rules). You can edit before saving or printing.' }));
     box.appendChild(el('label', { for: 'rnd' }, [document.createTextNode('Round'), roundSel]));
     box.appendChild(go); box.appendChild(status); box.appendChild(drafts);
     box.appendChild(el('h2', { text: 'Saved letters' })); box.appendChild(savedBox);
@@ -120,22 +139,25 @@
         var fr = rs[0], ar = rs[1];
         if (fr.error) { return errText(fr.error).then(function (t) { status.textContent = t; }); }
         var info = {}; ((ar && ar.data) || []).forEach(function (a) { info[a.id] = a; });
+        var dups = 0;
         var by = {}; ((fr.data && fr.data.items) || []).forEach(function (it) {
+          if (it.dup_of) { dups++; return; }
           var a = info[it.account_id]; if (!a || !BUREAU[a.bureau]) return;
-          (by[a.bureau] = by[a.bureau] || []).push({ a: a, text: it.text, review: !it.text });
+          (by[a.bureau] = by[a.bureau] || []).push({ a: a, text: it.text, review: round > 1 && !it.text });
         });
         var codes = ORDER.filter(function (k) { return by[k] && by[k].length; });
         if (!codes.length) { status.textContent = 'No accounts marked Dispute with a bureau. Mark some above first.'; return; }
         var anyReview = false;
-        status.textContent = 'Letters ready. Read them, edit if needed, then save or print.';
+        status.textContent = 'Letters ready. Read them, edit if needed, then save or print.' + (dups ? ' Left out ' + dups + ' duplicate account line' + (dups > 1 ? 's' : '') + '.' : '');
         codes.forEach(function (k) {
-          var list = by[k], parts = [intro(round, BUREAU[k].name, list.length), ''];
+          var list = by[k], seed = clientId + k, parts = [intro(round, BUREAU[k].name, list.length, seed), ''];
           list.forEach(function (x, n) {
             if (x.review) anyReview = true;
             parts.push((n + 1) + '. ' + x.a.creditor + ', ' + (x.a.acct_type || 'account') + (x.a.acct_last4 ? ', account ending ' + x.a.acct_last4 : ''));
-            parts.push(x.review ? '[The writer could not draft this one. Type the reason here.]' : x.text); parts.push('');
+            if (round > 1) parts.push(x.review ? '[The writer could not draft this one. Type the reason here.]' : x.text);
+            parts.push('');
           });
-          parts.push(closing(round));
+          parts.push(closing(round, seed));
           var ta = el('textarea', { rows: '16', 'aria-label': BUREAU[k].name + ' letter', class: 'letta' }); ta.value = parts.join('\n');
           var save = el('button', { class: 'btn', type: 'button', text: 'Save ' + BUREAU[k].name + ' letter' });
           var pr = el('button', { class: 'btn ghost', type: 'button', text: 'Print' });
