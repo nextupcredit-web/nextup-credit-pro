@@ -203,3 +203,5 @@ textarea.f{min-height:110px;resize:vertical;line-height:1.55}
  .agr{max-height:300px}
 }
 .meth{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line,#dfe5ef)}.meth .seg{flex-wrap:wrap}.meth textarea{font:inherit;padding:10px;border:1px solid var(--line,#cfd8e6);border-radius:10px;background:transparent;color:inherit}
+.scores{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.score{min-width:0;padding:10px}
+@media(max-width:520px){.score{padding:8px}.score .n{font-size:21px}.score .sub{font-size:11px}}
