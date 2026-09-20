@@ -4,7 +4,7 @@
   var C = window.NCP || {}, $ = function (id) { return document.getElementById(id); };
   var box = $('box');
   var st = document.createElement('style');
-  st.textContent = '.row.click{cursor:pointer}.row.click:hover,.row.click:focus{background:#f5f8ff;outline:none}select{display:block;width:100%;margin-top:6px;padding:12px;font-size:16px;border:1px solid #c9d2e3;border-radius:10px;background:#fff;box-sizing:border-box}.bar+h1{margin-top:14px}';
+  st.textContent = '.row.click{cursor:pointer}.row.click:hover,.row.click:focus{background:#f5f8ff;outline:none}select{display:block;width:100%;margin-top:6px;padding:12px;font-size:16px;border:1px solid #c9d2e3;border-radius:10px;background:#fff;box-sizing:border-box}.bar+h1{margin-top:14px}.row.pick{cursor:pointer;align-items:flex-start;justify-content:flex-start;gap:12px}.cb{width:22px;height:22px;margin-top:2px;flex:none}.warn{color:#9a5b00}select.mini{width:auto;margin:0;padding:8px 10px;font-size:14px}input[type=file]{padding:10px}';
   document.head.appendChild(st);
 
   function el(tag, attrs, kids) {
@@ -243,9 +243,11 @@
       });
 
       var h1 = el('h1', { text: (c.first_name || '') + ' ' + (c.last_name || '') });
+      var repBox = el('div', { id: 'repbox' });
       show([el('div', { class: 'bar' }, [backBtn(), signOutBtn(true)]), h1, f,
         el('h2', { text: 'Private details' }),
-        el('p', { class: 'sub', text: 'Stored encrypted. Only revealed on request, and every reveal is recorded in the activity log.' }), out, rev, sf]);
+        el('p', { class: 'sub', text: 'Stored encrypted. Only revealed on request, and every reveal is recorded in the activity log.' }), out, rev, sf, repBox]);
+      if (window.NCPReport) window.NCPReport.mount(repBox, { sb: sb, clientId: id, prof: prof, user: user });
     }
   }
 
