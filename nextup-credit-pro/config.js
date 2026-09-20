@@ -2,7 +2,7 @@
    Fill these in when you finish the Supabase step (see docs/START-HERE.md). */
 window.NCP = {
   MODE: "demo",                 // "demo" = sample data only. "live" = real accounts (used by /app).
-  FEEDBACK_EMAIL: "",           // Where demo feedback goes, for example you@yourbusiness.com
+  FEEDBACK_EMAIL: "support@nextupcapitalgroup.com",           // Where demo feedback goes, for example you@yourbusiness.com
   SUPABASE_URL: "",             // Project URL from Supabase (Settings > API)
   SUPABASE_ANON_KEY: ""         // The "anon public" key from Supabase (public by design)
 };
