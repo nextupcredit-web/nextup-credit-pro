@@ -106,12 +106,60 @@
           return;
         }
         var role = String(p.data.role || '');
-        show(head('Welcome, ' + (p.data.first_name || 'there'), 'Signed in securely with two-step.').concat([
-          el('p', { class: 'pill', text: 'Role: ' + role }),
-          el('p', { class: 'sub', text: 'Login works. The live pages (clients, letters, reports) are being connected next.' }),
-          signOutBtn()]));
+        if (['owner', 'manager', 'agent'].indexOf(role) < 0) {
+          show(head('Client portal coming soon', 'This live app is for the team right now.').concat([signOutBtn()]));
+          return;
+        }
+        dashboard(u.data.user, p.data);
       });
     }).catch(function () { loginScreen(); });
+  }
+
+  /* ---------- dashboard: clients list + add client ---------- */
+  function dashboard(user, prof) {
+    box.classList.add('wide');
+    var list = el('div', { id: 'list', class: 'list' });
+    var f = el('form', { id: 'f', novalidate: '', class: 'grid' }, [
+      field('fn', 'First name', 'text', { maxlength: '100', autocomplete: 'off' }),
+      field('ln', 'Last name', 'text', { maxlength: '100', autocomplete: 'off' }),
+      field('ce', 'Email (optional)', 'email', { maxlength: '200', required: null }),
+      field('cp', 'Phone (optional)', 'tel', { maxlength: '30', required: null }),
+      el('button', { class: 'btn', type: 'submit', text: 'Add client' }),
+      el('div', { id: 'msg', class: 'msg', role: 'alert' })
+    ]);
+    ['ce', 'cp'].forEach(function (id) { f.querySelector('#' + id).removeAttribute('required'); });
+    var bar = el('div', { class: 'bar' }, [el('div', {}, [el('strong', { text: (prof.first_name || 'Welcome') }), el('span', { class: 'pill', text: prof.role })]), signOutBtn()]);
+    show([bar, el('h2', { text: 'Clients' }), list, el('h2', { text: 'Add a client' }), f]);
+    box.querySelector('.bar .btn').classList.remove('btn'); box.querySelector('.bar button').className = 'link';
+
+    function load() {
+      sb.from('clients').select('id,first_name,last_name,email,phone,stage,created_at').order('created_at', { ascending: false }).limit(200).then(function (r) {
+        list.textContent = '';
+        if (r.error) { list.appendChild(el('p', { class: 'sub', text: 'Could not load clients.' })); return; }
+        if (!r.data.length) { list.appendChild(el('p', { class: 'sub', text: 'No clients yet. Add your first one below.' })); return; }
+        r.data.forEach(function (c) {
+          list.appendChild(el('div', { class: 'row' }, [
+            el('div', {}, [el('strong', { text: c.first_name + ' ' + c.last_name }), el('div', { class: 'sub', text: [c.email, c.phone].filter(Boolean).join(' · ') || 'No contact info yet' })]),
+            el('span', { class: 'pill', text: c.stage || 'new' })]));
+        });
+      });
+    }
+    load();
+
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var fn = $('fn').value.trim(), ln = $('ln').value.trim(), em = $('ce').value.trim(), ph = $('cp').value.trim();
+      if (!fn || !ln) { msg('Please fill in the first and last name.'); return; }
+      if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { msg('That email does not look right.'); return; }
+      var b = f.querySelector('button'); b.disabled = true; msg('');
+      sb.from('clients').insert({ org_id: prof.org_id, assigned_to: user.id, first_name: fn, last_name: ln, email: em || null, phone: ph || null })
+        .select('id').single().then(function (r) {
+          b.disabled = false;
+          if (r.error) { msg('Could not save. Please try again.'); return; }
+          sb.from('activity_log').insert({ org_id: prof.org_id, actor: user.id, action: 'added client', target: r.data.id }).then(function () {});
+          f.reset(); msg(''); load();
+        });
+    });
   }
 
   function signOutBtn() {
