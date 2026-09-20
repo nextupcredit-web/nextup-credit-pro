@@ -1,0 +1,14 @@
+import {checkCustom,buildPrompt,validateOutput,underCap} from "./lib.ts";
+import assert from "node:assert";
+assert(checkCustom("The balance is wrong, please verify and correct it.").ok);
+assert(!checkCustom("I will sue you").ok);
+assert(!checkCustom("bad").ok);
+assert(!checkCustom("x".repeat(1001)).ok);
+const p=buildPrompt({id:"1",creditor:"Acme",acct_type:"Collection",last4:"1234",bureau:"Equifax",method:"custom",custom_reason:"Balance is different from my records."},3);
+assert(p.user.includes("Balance is different")&&p.system.includes("method of verification"));
+assert(buildPrompt({id:"2",creditor:"B",acct_type:"Card",last4:"9",bureau:"Experian",method:"ours",facts:"Late 30 days shown 03/2024"},1).user.includes("Late 30"));
+assert(validateOutput("Please verify this account and correct or delete it if it cannot be shown accurate. Section 611 applies.").ok);
+assert(!validateOutput("I will file a lawsuit if you do not remove this account today.").ok);
+assert(!validateOutput("Under section 809 of the FDCPA you must stop.").ok);
+assert(underCap(1)&&!underCap(2));
+console.log("lib tests passed");

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#1F4FD8">
+<title>NextUp Credit Pro Demo</title>
+<link rel="icon" href="../icons/logo.svg" type="image/svg+xml">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="../src/styles.css">
+<script src="../config.js"></script>
+<script>window.NCP=Object.assign({},window.NCP,{MODE:"demo"});</script>
+</head>
+<body>
+<div class="pv"><span>Demo with sample data. Nothing is saved.</span>
+  <button data-mode="site" aria-pressed="true">Public website</button>
+  <button data-mode="checkout" aria-pressed="false">Checkout</button>
+  <button data-mode="agent" aria-pressed="false">Agent portal</button>
+  <button data-mode="portal" aria-pressed="false">Client portal</button>
+  <button data-mode="diy" aria-pressed="false">Do-it-yourself portal</button>
+  <button data-mode="join" aria-pressed="false">Client enrollment page</button>
+  <button data-reset="1">Reset demo</button></div>
+<div id="root"></div>
+<div id="mr"></div>
+<button class="fbfab" data-modal="feedback">Give feedback</button>
+<noscript>This demo needs JavaScript turned on.</noscript>
+<script src="../src/app.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('../sw.js').catch(function(){});}</script>
+</body>
+</html>
