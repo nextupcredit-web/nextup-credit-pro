@@ -152,11 +152,12 @@
       if (!fn || !ln) { msg('Please fill in the first and last name.'); return; }
       if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { msg('That email does not look right.'); return; }
       var b = f.querySelector('button'); b.disabled = true; msg('');
-      sb.from('clients').insert({ org_id: prof.org_id, assigned_to: user.id, first_name: fn, last_name: ln, email: em || null, phone: ph || null })
-        .select('id').single().then(function (r) {
+      var newId = crypto.randomUUID();
+      sb.from('clients').insert({ id: newId, org_id: prof.org_id, assigned_to: user.id, first_name: fn, last_name: ln, email: em || null, phone: ph || null })
+        .then(function (r) {
           b.disabled = false;
           if (r.error) { msg('Could not save. Please try again.'); return; }
-          sb.from('activity_log').insert({ org_id: prof.org_id, actor: user.id, action: 'added client', target: r.data.id }).then(function () {});
+          sb.from('activity_log').insert({ org_id: prof.org_id, actor: user.id, action: 'added client', target: newId }).then(function () {});
           f.reset(); msg(''); load();
         });
     });
