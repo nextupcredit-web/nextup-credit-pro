@@ -107,7 +107,7 @@
           var bs = (a.bureaus && a.bureaus.length) ? a.bureaus : [null];
           bs.forEach(function (b) {
             rows.push({ id: crypto.randomUUID(), org_id: prof.org_id, client_id: clientId, creditor: a.creditor, acct_type: a.acct_type || null,
-              acct_last4: a.last4 || null, acct_number: a.acct_number || null, bureau: b, balance: a.balance, decision: boxes[i].checked ? 'dispute' : 'ignore', method: 'ours', reason: a.issue || null });
+                           acct_last4: a.last4 || null, acct_number: a.acct_number || null, creditor_addr: a.creditor_addr || null, creditor_phone: a.creditor_phone || null, bureau: b, balance: a.balance, decision: boxes[i].checked ? 'dispute' : 'ignore', method: 'ours', reason: a.issue || null });
           });
         });
         sb.from('accounts').insert(rows).then(function (r) {
