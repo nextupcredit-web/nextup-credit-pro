@@ -3,6 +3,9 @@
 (function () {
   var C = window.NCP || {}, $ = function (id) { return document.getElementById(id); };
   var box = $('box');
+  var st = document.createElement('style');
+  st.textContent = '.row.click{cursor:pointer}.row.click:hover,.row.click:focus{background:#f5f8ff;outline:none}select{display:block;width:100%;margin-top:6px;padding:12px;font-size:16px;border:1px solid #c9d2e3;border-radius:10px;background:#fff;box-sizing:border-box}.bar+h1{margin-top:14px}';
+  document.head.appendChild(st);
 
   function el(tag, attrs, kids) {
     var e = document.createElement(tag);
@@ -128,9 +131,8 @@
       el('div', { id: 'msg', class: 'msg', role: 'alert' })
     ]);
     ['ce', 'cp'].forEach(function (id) { f.querySelector('#' + id).removeAttribute('required'); });
-    var bar = el('div', { class: 'bar' }, [el('div', {}, [el('strong', { text: (prof.first_name || 'Welcome') }), el('span', { class: 'pill', text: prof.role })]), signOutBtn()]);
+    var bar = el('div', { class: 'bar' }, [el('div', {}, [el('strong', { text: (prof.first_name || 'Welcome') }), el('span', { class: 'pill', text: prof.role })]), signOutBtn(true)]);
     show([bar, el('h2', { text: 'Clients' }), list, el('h2', { text: 'Add a client' }), f]);
-    box.querySelector('.bar .btn').classList.remove('btn'); box.querySelector('.bar button').className = 'link';
 
     function load() {
       sb.from('clients').select('id,first_name,last_name,email,phone,stage,created_at').order('created_at', { ascending: false }).limit(200).then(function (r) {
@@ -138,9 +140,13 @@
         if (r.error) { list.appendChild(el('p', { class: 'sub', text: 'Could not load clients.' })); return; }
         if (!r.data.length) { list.appendChild(el('p', { class: 'sub', text: 'No clients yet. Add your first one below.' })); return; }
         r.data.forEach(function (c) {
-          list.appendChild(el('div', { class: 'row' }, [
+          var row = el('div', { class: 'row click', role: 'button', tabindex: '0' }, [
             el('div', {}, [el('strong', { text: c.first_name + ' ' + c.last_name }), el('div', { class: 'sub', text: [c.email, c.phone].filter(Boolean).join(' · ') || 'No contact info yet' })]),
-            el('span', { class: 'pill', text: c.stage || 'new' })]));
+            el('span', { class: 'pill', text: stageName(c.stage) })]);
+          var open = function () { clientFile(user, prof, c.id); };
+          row.addEventListener('click', open);
+          row.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+          list.appendChild(row);
         });
       });
     }
@@ -163,15 +169,28 @@
     });
   }
 
-  function signOutBtn() {
-    var b = el('button', { class: 'btn ghost', type: 'button', text: 'Sign out' });
-    b.addEventListener('click', function () { sb.auth.signOut().then(loginScreen); });
-    return b;
-  }
-  function fail() { show(head('Something went wrong', 'Please sign in again.').concat([signOutBtn()])); }
+  /* ---------- client file ---------- */
+  var STAGES = ['New sign-up', 'Documents needed', 'Report review', 'Ready to mail', 'Waiting on bureaus', 'Follow-up due', 'Complete'];
+  function stageName(v) { return (!v || v === 'new') ? STAGES[0] : v; }
 
-  /* ---------- start ---------- */
-  sb.auth.getSession().then(function (s) {
-    if (s.data && s.data.session) afterPassword(); else loginScreen();
-  }).catch(loginScreen);
-})();
+  function clientFile(user, prof, id) {
+    var revealTimer = null;
+    function leave() { clearTimeout(revealTimer); dashboard(user, prof); }
+    show([el('p', { class: 'sub', text: 'Loading...' })]);
+    sb.from('clients').select('id,first_name,last_name,email,phone,address,stage').eq('id', id).maybeSingle().then(function (r) {
+      if (r.error || !r.data) { show([el('p', { class: 'sub', text: 'Could not open this client.' }), backBtn()]); return; }
+      draw(r.data);
+    });
+    function backBtn() { var b = el('button', { class: 'link', type: 'button', text: '< Back to clients' }); b.addEventListener('click', leave); return b; }
+
+    function draw(c) {
+      var sel = el('select', { id: 'stg' }, STAGES.map(function (n) { var o = el('option', { value: n, text: n }); if (n === stageName(c.stage)) o.setAttribute('selected', ''); return o; }));
+      var f = el('form', { id: 'f', novalidate: '', class: 'grid' }, [
+        field('fn', 'First name', 'text', { maxlength: '100' }), field('ln', 'Last name', 'text', { maxlength: '100' }),
+        field('ce', 'Email', 'email', { maxlength: '200' }), field('cp', 'Phone', 'tel', { maxlength: '30' }),
+        field('ca', 'Address', 'text', { maxlength: '300' }),
+        el('label', { for: 'stg' }, [document.createTextNode('Stage'), sel]),
+        el('button', { class: 'btn', type: 'submit', text: 'Save details' }),
+        el('div', { id: 'msg', class: 'msg', role: 'alert' })
+      ]);
+      ['ce', 'cp', 'ca'].forEach(function (k) { f.querySelector('#' + k).removeAttribute('required'); });
