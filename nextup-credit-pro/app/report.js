@@ -60,7 +60,7 @@
     box.appendChild(el('h2', { text: 'Accounts on file' })); box.appendChild(saved);
 
     function loadSaved() {
-      sb.from('accounts').select('id,creditor,acct_type,acct_last4,bureau,decision').eq('client_id', clientId).order('created_at', { ascending: true }).limit(500).then(function (r) {
+      sb.from('accounts').select('id,creditor,acct_type,acct_last4,acct_number,bureau,decision').eq('client_id', clientId).order('created_at', { ascending: true }).limit(500).then(function (r) {
         saved.textContent = '';
         if (r.error) { saved.appendChild(el('p', { class: 'sub', text: 'Could not load accounts.' })); return; }
         if (!r.data.length) { saved.appendChild(el('p', { class: 'sub', text: 'No accounts saved yet.' })); return; }
@@ -74,7 +74,7 @@
           });
           saved.appendChild(el('div', { class: 'row' }, [
             el('div', {}, [el('strong', { text: a.creditor || 'Account' }),
-              el('div', { class: 'sub', text: [a.acct_type, a.acct_last4 ? 'ending ' + a.acct_last4 : '', BUREAUS[a.bureau] || a.bureau].filter(Boolean).join(' · ') })]), sel]));
+              el('div', { class: 'sub', text: [a.acct_type, a.acct_number ? 'no. ' + a.acct_number : (a.acct_last4 ? 'ending ' + a.acct_last4 : ''), BUREAUS[a.bureau] || a.bureau].filter(Boolean).join(' · ') })]), sel]));
         });
       });
     }
@@ -92,7 +92,7 @@
         var cb = el('input', { type: 'checkbox', 'aria-label': 'Dispute ' + a.creditor, class: 'cb' });
         if (a.recommend === 'dispute') cb.checked = true;
         boxes.push(cb);
-        var det = [a.acct_type, a.last4 ? 'ending ' + a.last4 : '', (a.bureaus || []).map(function (b) { return BUREAUS[b]; }).join(', '), a.balance != null ? '$' + a.balance : ''].filter(Boolean).join(' · ');
+        var det = [a.acct_type, a.acct_number ? 'no. ' + a.acct_number : (a.last4 ? 'ending ' + a.last4 : ''), (a.bureaus || []).map(function (b) { return BUREAUS[b]; }).join(', '), a.balance != null ? '$' + a.balance : ''].filter(Boolean).join(' · ');
         var info = [el('strong', { text: a.creditor }), el('div', { class: 'sub', text: det }), el('div', { class: 'sub', text: a.issue || '' })];
         if (a.care) info.push(el('div', { class: 'sub warn', text: 'Careful: ' + a.care }));
         list.appendChild(el('label', { class: 'row pick' }, [cb, el('div', {}, info)]));
@@ -107,7 +107,7 @@
           var bs = (a.bureaus && a.bureaus.length) ? a.bureaus : [null];
           bs.forEach(function (b) {
             rows.push({ id: crypto.randomUUID(), org_id: prof.org_id, client_id: clientId, creditor: a.creditor, acct_type: a.acct_type || null,
-              acct_last4: a.last4 || null, bureau: b, balance: a.balance, decision: boxes[i].checked ? 'dispute' : 'ignore', method: 'ours', reason: a.issue || null });
+              acct_last4: a.last4 || null, acct_number: a.acct_number || null, bureau: b, balance: a.balance, decision: boxes[i].checked ? 'dispute' : 'ignore', method: 'ours', reason: a.issue || null });
           });
         });
         sb.from('accounts').insert(rows).then(function (r) {
