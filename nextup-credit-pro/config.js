@@ -3,6 +3,6 @@
 window.NCP = {
   MODE: "demo",                 // "demo" = sample data only. "live" = real accounts (used by /app).
   FEEDBACK_EMAIL: "support@nextupcapitalgroup.com",           // Where demo feedback goes, for example you@yourbusiness.com
-  SUPABASE_URL: "",             // Project URL from Supabase (Settings > API)
-  SUPABASE_ANON_KEY: ""         // The "anon public" key from Supabase (public by design)
+  SUPABASE_URL: "https://wvgfehgflbtxojhxbrza.supabase.co",             // Project URL from Supabase (Settings > API)
+  SUPABASE_ANON_KEY: "sb_publishable__RndjF1d07NAEDkGUOjApA_IbSmTLcD"         // The "anon public" key from Supabase (public by design)
 };
