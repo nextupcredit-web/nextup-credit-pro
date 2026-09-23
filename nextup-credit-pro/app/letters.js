@@ -104,7 +104,7 @@
 
     /* ---------- saved list ---------- */
     function loadSaved() {
-            sb.from('letters').select('id,bureau,round,body,created_at').eq('client_id', clientId).in('bureau', ['EQ', 'EX', 'TU']).order('created_at', { ascending: false }).limit(100).then(function (r) {
+      sb.from('letters').select('id,bureau,round,body,created_at,sent_on').eq('client_id', clientId).in('bureau', ['EQ', 'EX', 'TU']).order('created_at', { ascending: false }).limit(100).then(function (r) {
         savedBox.textContent = '';
         if (r.error) { savedBox.appendChild(el('p', { class: 'sub', text: 'Could not load letters.' })); return; }
         if (!r.data.length) { savedBox.appendChild(el('p', { class: 'sub', text: 'No letters saved yet.' })); return; }
@@ -114,9 +114,24 @@
           cp.addEventListener('click', function () { copyText(l.body).then(function () { cp.textContent = 'Copied'; setTimeout(function () { cp.textContent = 'Copy text'; }, 1500); }, function () { cp.textContent = 'Copy failed'; }); });
           var pr = el('button', { class: 'link', type: 'button', text: 'Print' });
           pr.addEventListener('click', function () { printLetter(l.bureau, l.body); });
+          var statusNode;
+          if (l.sent_on) {
+            statusNode = el('span', { class: 'pill', text: 'Mailed ' + new Date(l.sent_on + 'T00:00:00').toLocaleDateString() });
+          } else {
+            statusNode = el('button', { class: 'link', type: 'button', text: 'Mark mailed' });
+            statusNode.addEventListener('click', function () {
+              statusNode.disabled = true;
+              var d = new Date(), iso = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+              sb.from('letters').update({ sent_on: iso }).eq('id', l.id).then(function (r2) {
+                if (r2.error) { statusNode.disabled = false; return; }
+                sb.from('activity_log').insert({ org_id: prof.org_id, actor: user.id, action: 'marked letter mailed', target: clientId }).then(function () {});
+                loadSaved();
+              });
+            });
+          }
           savedBox.appendChild(el('div', { class: 'row' }, [
-            el('div', {}, [el('strong', { text: b.name + ' · Round ' + (l.round || 1) }), el('div', { class: 'sub', text: new Date(l.created_at).toLocaleDateString() })]),
-            el('div', {}, [cp, pr])]));
+            el('div', {}, [el('strong', { text: b.name + ' · Round ' + (l.round || 1) }), el('div', { class: 'sub', text: 'Saved ' + new Date(l.created_at).toLocaleDateString() })]),
+            el('div', {}, [statusNode, cp, pr])]));
         });
       });
     }
@@ -153,7 +168,7 @@
           var list = by[k], seed = clientId + k, parts = [intro(round, BUREAU[k].name, list.length, seed), ''];
           list.forEach(function (x, n) {
             if (x.review) anyReview = true;
-                        parts.push((n + 1) + '. ' + x.a.creditor + ', ' + (x.a.acct_type || 'account') + (x.a.acct_number ? ', account number ' + x.a.acct_number : (x.a.acct_last4 ? ', account ending ' + x.a.acct_last4 : '')));
+            parts.push((n + 1) + '. ' + x.a.creditor + ', ' + (x.a.acct_type || 'account') + (x.a.acct_number ? ', account number ' + x.a.acct_number : (x.a.acct_last4 ? ', account ending ' + x.a.acct_last4 : '')));
             if (round > 1) parts.push(x.review ? '[The writer could not draft this one. Type the reason here.]' : x.text);
             parts.push('');
           });
