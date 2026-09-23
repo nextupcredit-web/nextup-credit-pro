@@ -109,6 +109,7 @@
           return;
         }
         var role = String(p.data.role || '');
+        if (role === 'client') { clientHome(u.data.user, p.data); return; }
         if (['owner', 'manager', 'agent'].indexOf(role) < 0) {
           show(head('Client portal coming soon', 'This live app is for the team right now.').concat([signOutBtn()]));
           return;
@@ -191,6 +192,67 @@
   /* ---------- client file ---------- */
   var STAGES = ['Leads', 'Consultation Booked', 'Onboarding', 'Ready for disputing', 'Completed / Google Review'];
   function stageName(v) { return (!v || v === 'new' || STAGES.indexOf(v) < 0) ? STAGES[0] : v; }
+
+  /* ---------- client portal: read-only view for role='client' ---------- */
+  var STAGE_NOTE = {
+    'Leads': "We're getting your file set up.",
+    'Consultation Booked': 'Your consultation is scheduled.',
+    'Onboarding': "We're collecting your details and documents.",
+    'Ready for disputing': 'Your letters are being prepared and sent.',
+    'Completed / Google Review': 'Your disputes are complete. Thank you for being a client!'
+  };
+  var CBUREAU = { EQ: 'Equifax', EX: 'Experian', TU: 'TransUnion' };
+
+  function clientHome(user, prof) {
+    box.classList.add('wide');
+    show([el('p', { class: 'sub', text: 'Loading your file...' })]);
+    sb.from('clients').select('id,first_name,last_name,stage').eq('user_id', user.id).maybeSingle().then(function (r) {
+      if (r.error || !r.data) {
+        show(head('No file found yet', 'Ask your agent to link your account.').concat([signOutBtn()]));
+        return;
+      }
+      draw(r.data);
+    });
+
+    function draw(c) {
+      var stg = stageName(c.stage);
+      var letBox = el('div', { id: 'cletbox', class: 'list' });
+      var acctBox = el('div', { id: 'cacctbox', class: 'list' });
+      show([
+        el('div', { class: 'bar' }, [el('div', {}, [el('strong', { text: (c.first_name || 'Welcome') }), el('span', { class: 'pill', text: stg })]), signOutBtn(true)]),
+        el('h1', { text: 'Welcome, ' + (c.first_name || '') }),
+        el('p', { class: 'sub', text: STAGE_NOTE[stg] || '' }),
+        el('h2', { text: 'Your letters' }), letBox,
+        el('h2', { text: 'Your accounts' }), acctBox
+      ]);
+
+      sb.from('letters').select('bureau,round,sent_on,created_at').eq('client_id', c.id).order('created_at', { ascending: false }).limit(100).then(function (r) {
+        letBox.textContent = '';
+        if (r.error) { letBox.appendChild(el('p', { class: 'sub', text: 'Could not load your letters.' })); return; }
+        if (!r.data.length) { letBox.appendChild(el('p', { class: 'sub', text: 'No letters sent yet.' })); return; }
+        r.data.forEach(function (l) {
+          var status = l.sent_on
+            ? el('span', { class: 'pill', text: 'Mailed ' + new Date(l.sent_on + 'T00:00:00').toLocaleDateString() })
+            : el('span', { class: 'pill', text: 'Preparing' });
+          letBox.appendChild(el('div', { class: 'row' }, [
+            el('div', {}, [el('strong', { text: (CBUREAU[l.bureau] || l.bureau || 'Letter') + ' · Round ' + (l.round || 1) }), el('div', { class: 'sub', text: 'Saved ' + new Date(l.created_at).toLocaleDateString() })]),
+            status]));
+        });
+      });
+
+      sb.from('accounts').select('creditor,acct_type,bureau,decision').eq('client_id', c.id).order('created_at', { ascending: true }).limit(200).then(function (r) {
+        acctBox.textContent = '';
+        if (r.error) { acctBox.appendChild(el('p', { class: 'sub', text: 'Could not load your accounts.' })); return; }
+        if (!r.data.length) { acctBox.appendChild(el('p', { class: 'sub', text: 'No accounts on file yet.' })); return; }
+        r.data.forEach(function (a) {
+          var tag = a.decision === 'dispute' ? el('span', { class: 'pill', text: 'Disputing' }) : el('span', { class: 'pill', text: 'Not disputed' });
+          acctBox.appendChild(el('div', { class: 'row' }, [
+            el('div', {}, [el('strong', { text: a.creditor || 'Account' }), el('div', { class: 'sub', text: [a.acct_type, CBUREAU[a.bureau] || a.bureau].filter(Boolean).join(' · ') })]),
+            tag]));
+        });
+      });
+    }
+  }
 
   function clientFile(user, prof, id) {
     var revealTimer = null;
