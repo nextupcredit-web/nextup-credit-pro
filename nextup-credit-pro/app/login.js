@@ -118,10 +118,10 @@
     }).catch(function () { loginScreen(); });
   }
 
-  /* ---------- dashboard: clients list + add client ---------- */
+  /* ---------- dashboard: pipeline (clients grouped by stage) + add client ---------- */
   function dashboard(user, prof) {
     box.classList.add('wide');
-    var list = el('div', { id: 'list', class: 'list' });
+    var pipe = el('div', { id: 'pipe' });
     var f = el('form', { id: 'f', novalidate: '', class: 'grid' }, [
       field('fn', 'First name', 'text', { maxlength: '100', autocomplete: 'off' }),
       field('ln', 'Last name', 'text', { maxlength: '100', autocomplete: 'off' }),
@@ -132,21 +132,40 @@
     ]);
     ['ce', 'cp'].forEach(function (id) { f.querySelector('#' + id).removeAttribute('required'); });
     var bar = el('div', { class: 'bar' }, [el('div', {}, [el('strong', { text: (prof.first_name || 'Welcome') }), el('span', { class: 'pill', text: prof.role })]), signOutBtn(true)]);
-    show([bar, el('h2', { text: 'Clients' }), list, el('h2', { text: 'Add a client' }), f]);
+    show([bar, el('h2', { text: 'Pipeline' }), el('p', { class: 'sub', text: 'Use the dropdown on a client to move their stage. Click a client to open their file.' }), pipe, el('h2', { text: 'Add a client' }), f]);
 
     function load() {
-      sb.from('clients').select('id,first_name,last_name,email,phone,stage,created_at').order('created_at', { ascending: false }).limit(200).then(function (r) {
-        list.textContent = '';
-        if (r.error) { list.appendChild(el('p', { class: 'sub', text: 'Could not load clients.' })); return; }
-        if (!r.data.length) { list.appendChild(el('p', { class: 'sub', text: 'No clients yet. Add your first one below.' })); return; }
-        r.data.forEach(function (c) {
-          var row = el('div', { class: 'row click', role: 'button', tabindex: '0' }, [
-            el('div', {}, [el('strong', { text: c.first_name + ' ' + c.last_name }), el('div', { class: 'sub', text: [c.email, c.phone].filter(Boolean).join(' · ') || 'No contact info yet' })]),
-            el('span', { class: 'pill', text: stageName(c.stage) })]);
-          var open = function () { clientFile(user, prof, c.id); };
-          row.addEventListener('click', open);
-          row.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
-          list.appendChild(row);
+      sb.from('clients').select('id,first_name,last_name,email,phone,stage,created_at').order('created_at', { ascending: false }).limit(300).then(function (r) {
+        pipe.textContent = '';
+        if (r.error) { pipe.appendChild(el('p', { class: 'sub', text: 'Could not load clients.' })); return; }
+        if (!r.data.length) { pipe.appendChild(el('p', { class: 'sub', text: 'No clients yet. Add your first one below.' })); return; }
+        STAGES.forEach(function (stg) {
+          var rows = r.data.filter(function (c) { return stageName(c.stage) === stg; });
+          pipe.appendChild(el('h2', { text: stg + ' (' + rows.length + ')' }));
+          var list = el('div', { class: 'list' });
+          if (!rows.length) { list.appendChild(el('p', { class: 'sub', text: 'No clients here yet.' })); }
+          rows.forEach(function (c) {
+            var sel = el('select', { class: 'mini' }, STAGES.map(function (n) {
+              var o = el('option', { value: n, text: n }); if (n === stg) o.setAttribute('selected', ''); return o;
+            }));
+            sel.addEventListener('click', function (e) { e.stopPropagation(); });
+            sel.addEventListener('change', function () {
+              sel.disabled = true;
+              sb.from('clients').update({ stage: sel.value }).eq('id', c.id).then(function (r2) {
+                if (r2.error) { sel.disabled = false; return; }
+                sb.from('activity_log').insert({ org_id: prof.org_id, actor: user.id, action: 'moved client to ' + sel.value, target: c.id }).then(function () {});
+                load();
+              });
+            });
+            var row = el('div', { class: 'row click', role: 'button', tabindex: '0' }, [
+              el('div', {}, [el('strong', { text: c.first_name + ' ' + c.last_name }), el('div', { class: 'sub', text: [c.email, c.phone].filter(Boolean).join(' · ') || 'No contact info yet' })]),
+              sel]);
+            var open = function () { clientFile(user, prof, c.id); };
+            row.addEventListener('click', open);
+            row.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { if (e.target === sel) return; e.preventDefault(); open(); } });
+            list.appendChild(row);
+          });
+          pipe.appendChild(list);
         });
       });
     }
@@ -159,7 +178,7 @@
       if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { msg('That email does not look right.'); return; }
       var b = f.querySelector('button'); b.disabled = true; msg('');
       var newId = crypto.randomUUID();
-      sb.from('clients').insert({ id: newId, org_id: prof.org_id, assigned_to: user.id, first_name: fn, last_name: ln, email: em || null, phone: ph || null })
+      sb.from('clients').insert({ id: newId, org_id: prof.org_id, assigned_to: user.id, first_name: fn, last_name: ln, email: em || null, phone: ph || null, stage: 'Leads' })
         .then(function (r) {
           b.disabled = false;
           if (r.error) { msg('Could not save. Please try again.'); return; }
@@ -170,8 +189,8 @@
   }
 
   /* ---------- client file ---------- */
-  var STAGES = ['New sign-up', 'Documents needed', 'Report review', 'Ready to mail', 'Waiting on bureaus', 'Follow-up due', 'Complete'];
-  function stageName(v) { return (!v || v === 'new') ? STAGES[0] : v; }
+  var STAGES = ['Leads', 'Consultation Booked', 'Onboarding', 'Ready for disputing', 'Completed / Google Review'];
+  function stageName(v) { return (!v || v === 'new' || STAGES.indexOf(v) < 0) ? STAGES[0] : v; }
 
   function clientFile(user, prof, id) {
     var revealTimer = null;
